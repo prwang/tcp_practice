@@ -117,7 +117,14 @@
         </layout>
        </item>
        <item>
-        <widget class="QTextEdit" name="teMessages"/>
+        <widget class="QTextEdit" name="teMessages">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="acceptRichText">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLineEdit" name="leSendBuffer"/>
