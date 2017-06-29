@@ -11,30 +11,6 @@ namespace Ui
 }
 
 
-class server_msg : public read_first
-{
-Q_OBJECT
-public:
-    explicit server_msg(QTcpSocket *_conn, QObject *parent = nullptr)
-            : read_first(_conn, parent)
-    {
-        connect(this, SIGNAL(success(QTcpSocket*)), parent, SLOT(dispatch(QTcpSocket*)));
-        connect(this, SIGNAL(fail()), parent, SLOT(fail()));
-    }
-
-private:
-    void handleerror() override { deleteLater(); }
-
-    void dispatch() override
-    {
-        emit success(std::move(br), *conn);
-        deleteLater();
-    }
-
-signals:
-    void success(QByteArray, QTcpSocket&);
-    void fail();
-};
 
 
 class ServerProgram : public QWidget
@@ -54,6 +30,8 @@ private:
     QHash<QUuid, Userdata> usertb;
     QHash<QUuid, QListWidgetItem *> usertb_ui;
     QHash<QUuid, QList<QUuid> > puncreq_tb;
+    //TODO 把三个东西组合起来 struct Userdata_server : userdata
+    //QLWI别放基类里面，到时候要写没有UI的服务器版本
     QVector<Operation> changes; //回传：更改列表 + 等待的打洞请求　+　别人完成的打洞请求
 
 public slots:

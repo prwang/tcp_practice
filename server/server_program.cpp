@@ -23,7 +23,7 @@ ServerProgram::~ServerProgram()
 void ServerProgram::acceptConnection()
 {
     while (server->hasPendingConnections())
-        new server_msg(server->nextPendingConnection(), this);
+        new read_first(server->nextPendingConnection(), this);
 }
 
 
@@ -47,7 +47,7 @@ void ServerProgram::dispatch_udp()
         QDataStream stm(nd.data());
         opcd c; stm >> c;
         qDebug() << "udp: new pack arrived" << endl;
-        if (c.type & opcd::RQ_POSTLOGIN)
+        if (c.type & opcd::RQ_SENDIP)
         {
             QUuid us; stm >> us;
             qDebug() << "postlogin: user = " << us << endl;
@@ -88,7 +88,7 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
         input >> ud;
         usertb[ud.session] = ud;
         ui_add(ud);
-        so.write(compose_obj(opcd::RSP_OK));
+        so.write(compose_obj(opcd::RSP_LOGIN3_SUCC));
     }
     if (header.type & opcd::RQ_LOGOUT)
     {
@@ -99,13 +99,12 @@ void ServerProgram::logout(QUuid id, QTcpSocket & sk)
 {
     //TODO 这里重写完删掉
     assert(usertb.find(id) != usertb.end());
-    sk.write(compose_obj(opcd::RSP_OK));
     auto y = usertb_ui[id];
     delete y;
-    usertb_ui.remove(id);
     usertb.remove(id);
 }
  */
+        ui_del(id);
     }
     if (header.type & opcd::RQ_FETCH)
     {

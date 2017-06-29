@@ -7,35 +7,6 @@ class ClientProgram;
 }
 
 
-struct login_recv : read_first
-{
-Q_OBJECT
-public:
-    explicit login_recv(QTcpSocket* _conn, QObject *parent = nullptr)
-        : read_first(_conn, parent)
-    {
-        connect(this, SIGNAL(success(QTcpSocket*)), parent, SLOT(login_permitted(QTcpSocket*)));
-        connect(this, SIGNAL(fail()), parent, SLOT(fail()));
-    }
-private:
-    void dispatch() override
-    {
-        if (header.type & opcd::RSP_OK)
-            emit success(conn);
-        else emit fail();
-        deleteLater();
-    }
-    void handleerror() override
-    {
-        emit fail();
-        deleteLater();
-    }
-signals:
-    void success(QTcpSocket*);
-    void fail();
-
-};
-
 
 
 class ClientProgram : public QWidget
@@ -48,15 +19,18 @@ public:
 
 private:
     Ui::ClientProgram *ui;
-    QTimer *tm;
+    QTimer *timeout_guard, *interval_fetch, *interval_sendip;
     QHostAddress curServer;
-    QHostAddress *curContact;
+    //QHostAddress *curContact;
     QUdpSocket *with_client;
     QTcpSocket *with_server;
     Userdata* me;
+    QHash<QUuid, Userdata> usertb;
+    bool already_logged_in;
     //UI
+    unsigned version;
 
-
+    void ui_setall(bool enable);
     void ui_add(const Userdata &);
     void ui_del(const QUuid &);
     void ui_display_remote_msg(const QUuid& peerid, const QString& msg);
@@ -66,9 +40,10 @@ private:
 private slots:
     void on_pbLogin_clicked();
     void on_leSendBuffer_returnPressed();
-    void login_failed();
-    void login_send();
-    void login_permitted();
+    void dispatch(QByteArray inputdata, QTcpSocket& so);
+    void withserver_failed();
+    void login2();
+    void fetch2()
     void dispatch_udp();
     void fetch(); //在这里面settimeout，不要setinterval
 
