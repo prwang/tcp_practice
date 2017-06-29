@@ -53,10 +53,18 @@ void ServerProgram::dispatch_udp()
             qDebug() << "postlogin: user = " << us << endl;
             auto it = usertb.find(us);
             assert(it != usertb.end());
-            it->ipaddr = nd.senderAddress().toString();
-            it->port = (uint16_t)nd.senderPort();
-            changes.append(Operation{Operation::ADD, *it});
-            punching->write(compose_obj(opcd::RSP_LOGINFIN));
+            if (it->port != nd.senderPort() || it->ipaddr != nd.senderAddress().toString())
+            {
+                qDebug() << tr("ip changed: user=%1, from %2:%3 to %4:%5").arg(us.toString())
+                        .arg(it->ipaddr).arg(it->port)
+                        .arg(nd.senderAddress().toString()).arg(nd.senderPort()) << endl;
+
+                it->ipaddr = nd.senderAddress().toString();
+                it->port = (quint16) nd.senderPort();
+                changes.append(Operation{Operation::MOD, *it});
+            }
+            punching->writeDatagram(compose_obj(opcd::RSP_IP_RECEIVED),
+                                    nd.senderAddress(), (quint16)nd.senderPort());
         }
         if (c.type & opcd::RQ_NEEDPUNC)
         {
@@ -84,9 +92,8 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
     input >> header;
     if (header.type & opcd::RQ_LOGIN)
     {
-        Userdata ud;
-        input >> ud;
-        usertb[ud.session] = ud;
+        Userdata ud; input >> ud;
+        changes.append(Operation{Operation::ADD, usertb[ud.session] = ud });
         ui_add(ud);
         so.write(compose_obj(opcd::RSP_LOGIN3_SUCC));
     }
@@ -111,7 +118,7 @@ void ServerProgram::logout(QUuid id, QTcpSocket & sk)
         QByteArray outputdata;
         QDataStream output(outputdata);
         QUuid id;
-        quint64 version;
+        unsigned version;
         input >> id >> version;
         auto x = usertb.find(id);
         if (x == usertb.end())

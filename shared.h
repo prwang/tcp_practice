@@ -27,7 +27,7 @@ struct opcd
 
         RSP_LOGIN3_SUCC = 1 << 0,
         RSP_LISTADD = 1 << 2,
-        RSP_LOGINFIN = 1 << 4,
+        RSP_IP_RECEIVED = 1 << 4,
 
         RQ_LOGIN = 1 << 6,
         RQ_LOGOUT = 1 << 8,
@@ -60,8 +60,9 @@ struct opcd
         return op;
     }
 
-    void Ins(QDataStream &op)
+    void Ins(QByteArray &ar)
     {
+         QDataStream op{&ar, QIODevice::ReadWrite};
         op.device()->seek(0);
         op << *this;
     }
@@ -151,22 +152,33 @@ struct Userdata
     }
 };
 
-
-template<class T>
-inline QByteArray compose_obj(opcd::msgType ty, const T &object)
+template<class T> inline QByteArray __make__(T t1)
 {
     QByteArray ar;
     QDataStream st(&ar, QIODevice::ReadWrite);
-    st << object;
-    (opcd{ty, (unsigned) ar.size()}).Ins(st);
+    st << t1;
+    return ar;
+}
+template<class T, class ...Ts> inline QByteArray __make__(T t1,  Ts... T2)
+{
+    QByteArray ar;
+    QDataStream st(&ar, QIODevice::ReadWrite);
+    st << t1 << __make__(T2...);
+    return ar;
+}
+
+template<class ...Ts>
+inline QByteArray compose_obj(opcd::msgType ty,  Ts... object)
+{
+    QByteArray ar = __make__(object...);
+    (opcd{ty, (unsigned) ar.size()}).Ins(ar);
     return ar;
 }
 
 inline QByteArray compose_obj(opcd::msgType ty)
 {
     QByteArray ar;
-    QDataStream st(&ar, QIODevice::ReadWrite);
-    (opcd{ty, (unsigned) ar.size()}).Ins(st);
+    (opcd{ty, (unsigned) ar.size()}).Ins(ar);
     return ar;
 }
 

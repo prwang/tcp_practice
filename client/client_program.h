@@ -19,17 +19,17 @@ public:
 
 private:
     Ui::ClientProgram *ui;
-    QTimer *timeout_guard, *interval_fetch, *interval_sendip;
+    QTimer *timeout_guard,  *interval_sendip;
     QHostAddress curServer;
     //QHostAddress *curContact;
     QUdpSocket *with_client;
     QTcpSocket *with_server;
-    Userdata* me;
+    Userdata me;
     QHash<QUuid, Userdata> usertb;
-    bool already_logged_in;
     //UI
     unsigned version;
 
+    void send_ip();
     void ui_setall(bool enable);
     void ui_add(const Userdata &);
     void ui_del(const QUuid &);
@@ -43,7 +43,7 @@ private slots:
     void dispatch(QByteArray inputdata, QTcpSocket& so);
     void withserver_failed();
     void login2();
-    void fetch2()
+    void fetch2();
     void dispatch_udp();
     void fetch(); //在这里面settimeout，不要setinterval
 
