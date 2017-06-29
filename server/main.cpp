@@ -8,5 +8,13 @@ int main(int argc, char *argv[])
     ServerProgram w;
     w.show();
 
+    struct S
+    {
+        int a, b;
+    };
+
     return a.exec();
-}
+
+};
+
+

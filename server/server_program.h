@@ -27,15 +27,12 @@ private:
 
     void dispatch() override
     {
-        //FIXME 把dispatch丢到外面去，只留一个函数
-
-        //dispatch应该出现在这里吗？不应该！应该把bytearray直接丢出去
         emit success(std::move(br), *conn);
         deleteLater();
     }
 
 signals:
-    void success(QByteArray&&, QTcpSocket&);
+    void success(QByteArray, QTcpSocket&);
     void fail();
 };
 
@@ -58,14 +55,12 @@ private:
     QHash<QUuid, QListWidgetItem *> usertb_ui;
     QHash<QUuid, QList<QUuid> > puncreq_tb;
     QVector<Operation> changes; //回传：更改列表 + 等待的打洞请求　+　别人完成的打洞请求
-    void logout(QUuid, QTcpSocket&);
-    void getlist(QUuid, QTcpSocket&);
 
 public slots:
     void ui_add(const Userdata&);
     void ui_del(const QUuid&);
 
-    void dispatch(QByteArray&&, QTcpSocket&);
+    void dispatch(QByteArray, QTcpSocket&);
     void cleanup();
 private slots:
 

@@ -1,8 +1,6 @@
 #include <QtWidgets/QListWidgetItem>
 #include "server_program.h"
 
-#include "../shared.h"
-
 ServerProgram::ServerProgram(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ServerProgram),
@@ -33,6 +31,13 @@ void ServerProgram::ui_add(const Userdata& ud)
 {
     usertb_ui[ud.session] = new QListWidgetItem(ud.username, ui->listWidget);
 }
+void ServerProgram::ui_del(const QUuid& user)
+{
+    auto x = usertb_ui.find(user);
+    assert(x != usertb_ui.end()); //每个用户理论上只能下线一次
+    delete *x;
+    usertb_ui.remove(user);
+}
 
 void ServerProgram::dispatch_udp()
 {
@@ -58,7 +63,7 @@ void ServerProgram::dispatch_udp()
             QUuid us, ur; stm >> us >> ur; //自己的身份和他人的身份
             auto  y = puncreq_tb.find(ur);
             qDebug() << "needpunc: req from" << us << " to " << ur << endl;
-            if (y == usertb.end())
+            if (y == puncreq_tb.end())
             {
                 qDebug() << "needpunching: target doesn't exist" << endl;
                 return;
@@ -70,28 +75,8 @@ void ServerProgram::dispatch_udp()
     }
 }
 
-void ServerProgram::getlist(QUuid id, QTcpSocket & sk)
-{
-    auto x = usertb.find(id);
-    if  (x == usertb.end())
-    {
-        qDebug() << "getlist: user doesn't exist" << endl;
-        return;
-    }
 
-}
-
-void ServerProgram::logout(QUuid id, QTcpSocket & sk)
-{
-    //TODO 这里重写
-    assert(usertb.find(id) != usertb.end());
-    sk.write(compose_obj(opcd::RSP_OK));
-    auto y = usertb_ui[id];
-    delete y;
-    usertb_ui.remove(id);
-    usertb.remove(id);
-}
-void ServerProgram::dispatch(QByteArray&& inputdata, QTcpSocket& so)
+void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
 {
     connect(&so, SIGNAL(disconnected()), this, SLOT(cleanup()));
     QDataStream input(inputdata);
@@ -109,7 +94,18 @@ void ServerProgram::dispatch(QByteArray&& inputdata, QTcpSocket& so)
     {
         QUuid id;
         input >> id;
-        logout(id, so);
+/*
+void ServerProgram::logout(QUuid id, QTcpSocket & sk)
+{
+    //TODO 这里重写完删掉
+    assert(usertb.find(id) != usertb.end());
+    sk.write(compose_obj(opcd::RSP_OK));
+    auto y = usertb_ui[id];
+    delete y;
+    usertb_ui.remove(id);
+    usertb.remove(id);
+}
+ */
     }
     if (header.type & opcd::RQ_FETCH)
     {
@@ -129,7 +125,7 @@ void ServerProgram::dispatch(QByteArray&& inputdata, QTcpSocket& so)
         if (version < changes.size())
         {
             flag |= opcd::CMD_CHANGED;
-            QVector wr(changes.size() - version);
+            QVector<Operation> wr(changes.size() - version);
             std::copy(changes.begin() + version, changes.end(), wr.begin());
             output << wr;
         }
@@ -150,3 +146,4 @@ void ServerProgram::cleanup()
     QTcpSocket* sk = qobject_cast<QTcpSocket*>(QObject::sender());
     if (sk) sk->deleteLater();
 }
+

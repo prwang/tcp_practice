@@ -54,14 +54,11 @@ void ClientProgram::dispatch_udp()
     switch (head.type)
     {
     case opcd::RSP_LOGINFIN:
-        tm->stop();
-        connect(tm, SIGNAL(timeout()), this, SLOT(fetch()));
-        tm->setInterval(refresh);
-        fetch();
+        tm->stop(); fetch();
         break;
-    case opcd::CMD_NEWMSG:
+    case opcd::MSG_REALMSG:
         break; //TODO 新消息的相关行为
-    case opcd::CMD_PUNCH:
+    case opcd::MSG_PUNCH:
         break; //TODO 要不要处理打洞包？
     default: assert(false);
     }
@@ -74,8 +71,7 @@ void ClientProgram::login_failed()
 }
 void ClientProgram::fetch()
 {
-    //发送uuid和版本号
-    //uuid用于
+
 }
 
 

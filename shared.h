@@ -34,9 +34,11 @@ struct opcd
         RQ_POSTLOGIN =        0b1000000,
         RQ_NEEDPUNC =        0b10000000,
 
-        CMD_NEWMSG =      0b10000000000,
+
+        MSG_REALMSG =     0b10000000000,
         CMD_PUNCH =      0b100000000000,
         CMD_CHANGED =   0b1000000000000,
+        MSG_PUNCH =    0b10000000000000,
     };
     unsigned type, length;
     explicit operator int() { return length; }
@@ -144,8 +146,21 @@ struct Operation
     {
         ADD,
         DEL,
-    } type;
+    };
+    unsigned type;
     Userdata data;
+
+    friend QDataStream &operator>>(QDataStream &op, Operation &s)
+    {
+        op >> s.type >> s.data;
+        return op;
+    }
+
+    friend QDataStream &operator<<(QDataStream &op, const Operation &s)
+    {
+        op << s.type << s.data;
+        return op;
+    }
 };
 
 
