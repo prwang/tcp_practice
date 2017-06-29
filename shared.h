@@ -1,14 +1,16 @@
 #pragma once
 
 #include <QMainWindow>
-
+#include <QtNetwork/QNetworkDatagram>
 #include <QtGui/QtGui>
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QTcpServer>
 #include <QtNetwork/QTcpSocket>
 #include <QDataStream>
 #include <QMessageBox>
+#include <cassert>
 #include <QUuid>
+#include <chrono>
 
 enum Ports : quint16
 {
@@ -21,18 +23,22 @@ struct opcd
 {
     enum msgType : unsigned
     {
-        RSP_OK =                   0b1,
-        RSP_NOTFOUND =            0b10,
 
-        RQ_LOGIN =               0b100,
-        RQ_LOGOUT =             0b1000,
-        RQ_GETLIST =           0b10000,
+        RSP_OK =                    0b1,
+        RSP_LISTADD =              0b10,
+        RSP_LOGINFIN =            0b100,
 
-        TR_NOTIF =           0b1000000,
-        TR_KEEP =           0b10000000
+        RQ_LOGIN =               0b1000,
+        RQ_LOGOUT =             0b10000,
+        RQ_FETCH   =           0b100000,
+        RQ_POSTLOGIN =        0b1000000,
+        RQ_NEEDPUNC =        0b10000000,
 
-    } type;
-    unsigned length;
+        CMD_NEWMSG =      0b10000000000,
+        CMD_PUNCH =      0b100000000000,
+        CMD_CHANGED =   0b1000000000000,
+    };
+    unsigned type, length;
     explicit operator int() { return length; }
 
     friend QDataStream &operator>>(QDataStream &op, opcd& s)
@@ -54,6 +60,7 @@ struct opcd
 
 template<class Header> //header：定长文件头，含有一个operator quint64()表示余下部分文件大小
 struct object_with_header { Header header; };
+
 struct read_first : public QObject,
                     public object_with_header<opcd>
 {
@@ -70,11 +77,11 @@ protected:
         connect(conn, SIGNAL(error()), this, SLOT(Error()));
         connect(conn, SIGNAL(disconnected()), this, SLOT(Disconnected()));
     }
-    virtual void after_read_done() = 0;
+    virtual void dispatch() = 0;
+    virtual void handleerror() = 0;
 public slots:
     void Read()
     {
-        if (conn->bytesAvailable() <= 0) return; // ?
         if (received < sizeof(header))
             received += conn->read((char*)&header + received, sizeof(header) - received);
         else
@@ -83,11 +90,12 @@ public slots:
             quint64 rr = received - sizeof(header),
                     cn = int(header) - rr;
             if (cn > 0) received += conn->read(br.data() + rr, cn);
-            else { is_done = true;  after_read_done(); }
+            else { is_done = true;
+                dispatch(); }
         }
     }
-    void Error() { is_error = true; }
-    void Disconnected() { if (!is_done) is_error = true; };
+    void Error() { handleerror(); }
+    void Disconnected() { if (!is_done) handleerror(); };
 };
 
 struct Userdata
@@ -103,7 +111,7 @@ struct Userdata
         return op;
     }
 
-    friend QDataStream &operator<<(QDataStream &op, Userdata &s)
+    friend QDataStream &operator<<(QDataStream &op, const Userdata &s)
     {
         op << s.session << s.username << s.ipaddr << s.port;
         return op;
@@ -112,26 +120,34 @@ struct Userdata
 
 
 
-template<class T> inline void write_close(opcd::msgType ty, QTcpSocket &sk, const T &object)
+
+template<class T> inline QByteArray compose_obj(opcd::msgType ty,  const T &object)
 {
     QByteArray ar; QDataStream st(&ar, QIODevice::ReadWrite);
     st << object;
     (opcd{ty, (unsigned)ar.size()}).Ins(st);
-    sk.write(ar); sk.close();
+    return ar;
+}
+inline QByteArray compose_obj(opcd::msgType ty)
+{
+    QByteArray ar; QDataStream st(&ar, QIODevice::ReadWrite);
+    (opcd{ty, (unsigned)ar.size()}).Ins(st);
+    return ar;
 }
 
-struct emptyobj
+
+
+
+struct Operation
 {
-    friend QDataStream &operator>>(QDataStream &op, emptyobj& s) { return op; }
-    friend QDataStream &operator<<(QDataStream &op, const emptyobj& s) { return op; }
+    enum
+    {
+        ADD,
+        DEL,
+    } type;
+    Userdata data;
 };
 
 
+constexpr std::chrono::milliseconds timeout(10000), refresh(2000);
 
-struct changes
-{
-
-};
-class userdataall : QHash<QUuid, Userdata>
-{
-};

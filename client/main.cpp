@@ -1,10 +1,9 @@
-#include "mainwindow.h"
-#include <QApplication>
+#include "client_program.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
+    ClientProgram w;
     w.show();
     return a.exec();
 }
