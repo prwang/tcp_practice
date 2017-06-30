@@ -10,7 +10,7 @@ ServerProgram::ServerProgram(QWidget *parent) :
     server->listen(QHostAddress::Any, Ports::server_tcp);
     punching->bind(QHostAddress::Any, Ports::server_udp);
     connect(server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
-    connect(punching, SIGNAL(bytesAvailable()), this, SLOT(dispatch_udp()));
+    connect(punching, SIGNAL(readyRead()), this, SLOT(dispatch_udp()));
 }
 
 
@@ -92,7 +92,7 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
     if (header.type & opcd::RQ_LOGIN)
     {
         Userdata ud; input >> ud;
-        changes.append(Operation{Operation::ADD, usertb[ud.session] = ud });
+        changes.append(Operation{Operation::ADD, usertb[ud.session] = User(ud) });
         ui_add(ud);
         so.write(compose_obj(opcd::RSP_LOGIN3_SUCC));
     }
@@ -131,7 +131,7 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
         {
             flag |= opcd::CMD_PUNCH;
             QList<QUuid> pend;
-            pend.swap(*y);
+            pend.swap(y->puncreq);
             output << pend;
         }
     } //打洞请求用UDP发吧

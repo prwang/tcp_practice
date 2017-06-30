@@ -15,6 +15,7 @@ struct User : Userdata
 {
     QListWidgetItem* disp;
     QList<QUuid> puncreq;
+    User() {}
     explicit User(const Userdata& ud)
     : disp(nullptr), puncreq{}, Userdata(ud) {}
 

@@ -51,6 +51,8 @@ void ClientProgram::on_leSendBuffer_returnPressed()
     curContact->sendmsg();
 }
 
+
+
 void Friend_::sendmsg()
 {
     ++try_time;
@@ -82,6 +84,7 @@ void Friend_::ok()
 
 void ClientProgram::send_ip()
 {
+//注意： 现在keep-alive应该没问题？但是如果防火墙干掉了的话，可以再次打洞，keepalive只是为了保证映射关系不要再发生变化
     interval_sendip->stop();
     with_client->writeDatagram(compose_obj(opcd::RQ_SENDIP, me.session),
                                curServer, server_udp);
@@ -106,6 +109,7 @@ void ClientProgram::dispatch(QByteArray inputdata, QTcpSocket &so)
             if (x.type == x.ADD || x.type == x.MOD)
             {
                 Friend_ &pt = *usertb.insert(x.data.session, Friend_(x.data));//insert会有replace行为
+//现在有modify操作，那么如果发生了modify操作，则会清空聊天记录！
                 if (x.type == x.ADD) ui_add(pt);
             } else if (x.type == x.DEL)
             {
