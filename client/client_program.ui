@@ -21,20 +21,34 @@
        <property name="text">
         <string>主机：</string>
        </property>
+       <property name="buddy">
+        <cstring>leHost</cstring>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="leHost"/>
+      <widget class="QLineEdit" name="leHost">
+       <property name="text">
+        <string>127.0.0.1</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
         <string>用户名：</string>
        </property>
+       <property name="buddy">
+        <cstring>leUser</cstring>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="leUser"/>
+      <widget class="QLineEdit" name="leUser">
+       <property name="text">
+        <string>gwpl</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pbLogin">
@@ -59,6 +73,9 @@
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>好友列表</string>
+         </property>
+         <property name="buddy">
+          <cstring>lwContacts</cstring>
          </property>
         </widget>
        </item>

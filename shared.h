@@ -95,11 +95,11 @@ protected:
     }
 public:
     explicit read_first(QTcpSocket *_conn, QObject *parent = nullptr)
-            : QObject(parent), received(0), is_done(false), is_error(false), conn(_conn), br{}
+            : QObject(parent), received(0), is_done(false), is_error(false), conn(_conn), br((int)sizeof(header), 0)
     {
-        connect(conn, SIGNAL(error()), this, SLOT(Error()));
+        connect(conn, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(Error(QAbstractSocket::SocketError)));
         connect(conn, SIGNAL(disconnected()), this, SLOT(Disconnected()));
-        connect(this, SIGNAL(success(QByteArray, QTcpSocket*)), parent, SLOT(dispatch(QByteArray, QTcpSocket*)));
+        connect(this, SIGNAL(success(QByteArray, QTcpSocket&)), parent, SLOT(dispatch(QByteArray, QTcpSocket&)));
         connect(conn, SIGNAL(readyRead()), this, SLOT(Read()));
         proceeding = true;
     }
@@ -109,14 +109,21 @@ public slots:
     void Read()
     {
         if (received < sizeof(header))
-            received += conn->read((char *) &header + received, sizeof(header) - received);
-        else
+            received += conn->read(br.data() + received, sizeof(header) - received);
+        if (received == sizeof(header))
         {
-            if (!br.size()) br.resize(int(header));
-            quint64 rr = received - sizeof(header),
-                    cn = int(header) - rr;
+            QDataStream st(br);
+            st >> header;
+            br.resize(int(header));
+            if (0 == int(header))
+                emit success(br, *conn);
+        }
+        if (conn->bytesAvailable() > 0)
+        {
+            quint64 rr = received - sizeof(header), cn = int(header) - rr;
             if (cn > 0) received += conn->read(br.data() + rr, cn);
-            else
+            rr = received - sizeof(header), cn = int(header) - rr;
+            if (cn == 0)
             {
                 is_done = true;
                 emit success(br, *conn);
@@ -126,7 +133,8 @@ public slots:
         }
     }
 
-    void Error() { proceeding = false; emit fail(); conn->close();   }
+    void Error(QAbstractSocket::SocketError)
+    { proceeding = false; emit fail(); conn->close();   }
     void Disconnected() { if (!is_done && proceeding) handleerror(); };
 signals:
     void success(QByteArray, QTcpSocket&);
@@ -153,26 +161,23 @@ struct Userdata
     }
 };
 
-template<class T> inline QByteArray __make__(const T& t1)
+inline void __make__(QDataStream& st) { }
+template<class T, class ...Ts> inline QByteArray
+__make__(QDataStream& st, const T& t1,  const Ts&... T2)
 {
-    QByteArray ar;
-    QDataStream st(&ar, QIODevice::ReadWrite);
     st << t1;
-    return ar;
-}
-template<class T, class ...Ts> inline QByteArray __make__(const T& t1,  const Ts&... T2)
-{
-    QByteArray ar;
-    QDataStream st(&ar, QIODevice::ReadWrite);
-    st << t1 << __make__(T2...);
-    return ar;
+    __make__(st, T2...);
 }
 
 template<class ...Ts>
 inline QByteArray compose_obj(opcd::msgType ty,  const Ts&... object)
 {
-    QByteArray ar = __make__(object...);
-    (opcd{ty, (unsigned) ar.size()}).Ins(ar);
+    QByteArray ar;
+    QDataStream st(&ar, QIODevice::ReadWrite);
+    st << opcd();
+    __make__(st, object...);
+    st.device()->seek(0);
+    st << opcd{ty, (unsigned) ar.size()};
     return ar;
 }
 

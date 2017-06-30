@@ -94,6 +94,7 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
         Userdata ud; input >> ud;
         changes.append(Operation{Operation::ADD, usertb[ud.session] = User(ud) });
         ui_add(ud);
+        qDebug() << "a user logged in!" << endl;
         so.write(compose_obj(opcd::RSP_LOGIN3_SUCC));
     }
     if (header.type & opcd::RQ_LOGOUT)

@@ -28,7 +28,7 @@ ClientProgram::~ClientProgram()
 
 void ClientProgram::on_pbLogin_clicked()
 {
-    connect(with_server, SIGNAL(connected()), this, SIGNAL(login2()));
+    connect(with_server, SIGNAL(connected()), this, SLOT(login2()));
     connect(timeout_guard, SIGNAL(timeout()), this, SLOT(withserver_failed()));
     me = Userdata{QUuid::createUuid(), ui->leUser->text(),
                   with_client->localAddress().toString(), with_client->localPort()};
@@ -57,6 +57,7 @@ void ClientProgram::on_leSendBuffer_returnPressed()
 
 void ClientProgram::send_ip()
 {
+    qDebug() << "send ip called!" << endl;
 //注意： 现在keep-alive应该没问题？但是如果防火墙干掉了的话，可以再次打洞，keepalive只是为了保证映射关系不要再发生变化
     interval_sendip->stop();
     with_client->writeDatagram(compose_obj(opcd::RQ_SENDIP, me.session),
@@ -117,6 +118,7 @@ void ClientProgram::dispatch(QByteArray inputdata, QTcpSocket &so)
 
 void ClientProgram::login2()
 {
+    qDebug() << "login2 called!" << endl;
     timeout_guard->stop();
     disconnect(with_server, SIGNAL(connected()), nullptr, nullptr);
     with_server->write(compose_obj(opcd::RQ_LOGIN, me));
@@ -159,6 +161,7 @@ void ClientProgram::withserver_failed()
 {
     with_server->disconnectFromHost();
     errmsg("与服务器连接失败，检查网络并重试！");
+    timeout_guard->stop();
 }
 
 void ClientProgram::fetch()

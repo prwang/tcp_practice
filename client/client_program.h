@@ -29,7 +29,7 @@ private:
     //UI
     unsigned version;
 
-    void send_ip();
+    void hole_request();
     void ui_setupFriend();
     void ui_setall(bool enable);
     void ui_add(Friend_ &fr);
@@ -42,6 +42,7 @@ private:
 private slots:
     void on_pbLogin_clicked();
     void on_leSendBuffer_returnPressed();
+    void send_ip();
     void dispatch(QByteArray inputdata, QTcpSocket& so);
     void on_lwContacts_itemClicked(QListWidgetItem* );
     void withserver_failed();

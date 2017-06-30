@@ -7,7 +7,6 @@
 
 void Friend_::sendmsg()
 {
-    ++try_time;
     guard->stop();
     ClientProgram *cp = qobject_cast<ClientProgram *>(parent());
     cp->with_client->writeDatagram(
@@ -19,9 +18,13 @@ void Friend_::sendmsg()
 void Friend_::send_timeout()
 {
     ClientProgram *cp = qobject_cast<ClientProgram *>(parent());
-    if (try_time < 2)
+    if (try_time < 1)
     {
-
+        ++try_time;
+        guard->start(timeout); //stop在上面的sendmsg里面
+        cp->with_client->writeDatagram(
+                compose_obj(opcd::RQ_NEEDPUNC, cp->me.session, session),
+                cp->curServer, server_udp);
 
     } else cp->ui_send_error();
 }
