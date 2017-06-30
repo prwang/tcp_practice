@@ -120,9 +120,9 @@ public slots:
         }
         if (conn->bytesAvailable() > 0)
         {
-            quint64 rr = received - sizeof(header), cn = int(header) - rr;
-            if (cn > 0) received += conn->read(br.data() + rr, cn);
-            rr = received - sizeof(header), cn = int(header) - rr;
+            quint64  cn = int(header) - received;
+            if (cn > 0) received += conn->read(br.data() + received, cn);
+            cn = int(header) - received;
             if (cn == 0)
             {
                 is_done = true;
@@ -177,7 +177,7 @@ inline QByteArray compose_obj(opcd::msgType ty,  const Ts&... object)
     st << opcd();
     __make__(st, object...);
     st.device()->seek(0);
-    st << opcd{ty, unsigned(ar.size() - sizeof(opcd))};
+    st << opcd{ty, unsigned(ar.size())};
     return ar;
 }
 
