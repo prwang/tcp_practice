@@ -8,6 +8,8 @@
 #include <QtNetwork/QTcpSocket>
 #include <QDataStream>
 #include <QMessageBox>
+#include <QListWidget>
+#include <QListWidgetItem>
 #include <cassert>
 #include <QUuid>
 #include <chrono>
@@ -209,3 +211,4 @@ struct Operation
 
 constexpr std::chrono::milliseconds timeout(3000), refresh(2000);
 
+#define errmsg(x) do {  QMessageBox::critical(this, tr("错误"), tr(x)); return; } while (false)

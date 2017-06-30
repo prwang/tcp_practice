@@ -3,27 +3,10 @@
 #include "../shared.h"
 #include "ui_client_program.h"
 namespace Ui { class ClientProgram; }
+#include "friend.h"
 
 
 
-
-struct Friend_ : Userdata, QObject
-{
-    Q_OBJECT
-    QString history;
-    QString pendingmsg; //特别地，长度为0，表示是没有正在等待的消息的
-    QTimer *guard;
-    int try_time;
-    friend class ClientProgram;
-public:
-    explicit Friend_(const Userdata& bs, ClientProgram* parent) :Userdata(bs),
-        history{}, pendingmsg{}, guard(new QTimer(this)), QObject(parent), try_time(0) { }
-    void sendmsg();
-    void ok();
-private slots:
-    void send_timeout();
-
-};
 class ClientProgram : public QWidget
 {
     Q_OBJECT
@@ -40,8 +23,9 @@ private:
     QUdpSocket *with_client;
     QTcpSocket *with_server;
     Userdata me;
-    QHash<QUuid, Friend_> usertb;
-    QHash<QUuid, Friend_>::iterator curContact;
+    QHash<QUuid, Friend_* > usertb;
+    QHash<QListWidgetItem*, Friend_*> lst_rev;
+    Friend_* curContact;
     //UI
     unsigned version;
 
@@ -59,6 +43,7 @@ private slots:
     void on_pbLogin_clicked();
     void on_leSendBuffer_returnPressed();
     void dispatch(QByteArray inputdata, QTcpSocket& so);
+    void on_lwContacts_itemClicked(QListWidgetItem* );
     void withserver_failed();
     void login2();
     void fetch2();

@@ -8,7 +8,9 @@ ClientProgram::ClientProgram(QWidget *parent) :
         with_server(new QTcpSocket(this)),
         timeout_guard(new QTimer(this)), //TIMER 所有需要回复的UDP包，和TCP连接的建立
         interval_sendip(new QTimer(this)),
-        version(0)
+        version(0),
+        curContact(nullptr)
+
 {
     ui->setupUi(this);
     ui->lwContacts->setEnabled(false);
@@ -35,52 +37,23 @@ void ClientProgram::on_pbLogin_clicked()
     with_server->connectToHost(curServer, server_tcp); //
 }
 
-#define errmsg(x) do {  QMessageBox::critical(this, tr("错误"), tr(x)); return; } while (false)
 
 void ClientProgram::on_leSendBuffer_returnPressed()
 {
+    if (curContact->pendingmsg.size()) return;
     QString &txt = curContact->pendingmsg = ui->leSendBuffer->text();
     curContact->try_time = 0;
+
     if (txt.size() > MAX_MSG_SIZE)
     {
         errmsg("消息过长！");
         txt.resize(0);
         return;
     }
-    ui_display_local_msg(txt);
     curContact->sendmsg();
 }
 
 
-
-void Friend_::sendmsg()
-{
-    ++try_time;
-    guard->stop();
-    ClientProgram *cp = qobject_cast<ClientProgram *>(parent());
-    cp->with_client->writeDatagram(
-            compose_obj(opcd::MSG_REALMSG, cp->me.session, pendingmsg),
-            QHostAddress(ipaddr), port);
-    guard->start(timeout);
-}
-
-void Friend_::send_timeout()
-{
-    ClientProgram *cp = qobject_cast<ClientProgram *>(parent());
-    if (try_time < 2)
-    {
-
-
-    } else cp->ui_send_error();
-}
-
-void Friend_::ok()
-{
-    guard->stop();
-    ClientProgram *cp = qobject_cast<ClientProgram *>(parent());
-    cp->ui_display_local_msg(pendingmsg);
-    pendingmsg.resize(0);
-}
 
 void ClientProgram::send_ip()
 {
@@ -108,15 +81,16 @@ void ClientProgram::dispatch(QByteArray inputdata, QTcpSocket &so)
         {
             if (x.type == x.ADD || x.type == x.MOD)
             {
-                Friend_ &pt = *usertb.insert(x.data.session, Friend_(x.data));//insert会有replace行为
+                Friend_ &pt = **usertb.insert(x.data.session,
+                                             new Friend_(x.data, this));//insert会有replace行为
 //现在有modify操作，那么如果发生了modify操作，则会清空聊天记录！
                 if (x.type == x.ADD) ui_add(pt);
             } else if (x.type == x.DEL)
             {
                 auto y = usertb.find(x.data.session);
                 assert(y != usertb.end());
-                ui_del(*y);
-                if (y == curContact) curContact = usertb.end();
+                ui_del(**y);
+                if (*y == curContact) curContact = nullptr;
                 usertb.remove(x.data.session);
             } else
                 assert(false);
@@ -134,10 +108,11 @@ void ClientProgram::dispatch(QByteArray inputdata, QTcpSocket &so)
             auto it = usertb.find(x);
             assert(it != usertb.end());
             with_client->writeDatagram(compose_obj(opcd::MSG_PUNCH, me.session),
-                                       QHostAddress(it->ipaddr), it->port);
+                                       QHostAddress((*it)->ipaddr), (*it)->port);
         }
     }
     interval_sendip->start(refresh);
+    ui_setall(true);
 }
 
 void ClientProgram::login2()
@@ -159,7 +134,6 @@ void ClientProgram::dispatch_udp()
     {
         timeout_guard->stop();
         fetch();
-        ui_setall(true);
     } else
     {
         QUuid senderID;
@@ -169,13 +143,14 @@ void ClientProgram::dispatch_udp()
             qDebug() << "user doesn't exist! maybe it has  already logged out!" << endl;
         if (head.type == opcd::MSG_REALMSG)
         {
-            QString str;
-            input >> str;
-            ui_display_remote_msg(*it, str);
+            QString str; input >> str;
+            curContact = *it;
+            curContact->addmsg(str, "\n");
+            ui_setupFriend();
             with_client->writeDatagram(compose_obj(opcd::MSG_OK, me.session),
                                        dg.senderAddress(), dg.senderPort());
-        } else if (head.type == opcd::MSG_PUNCH) it->sendmsg();
-        else if (head.type == opcd::MSG_OK) it->ok();
+        } else if (head.type == opcd::MSG_PUNCH) (*it)->sendmsg();
+        else if (head.type == opcd::MSG_OK) (*it)->ok();
         else assert(false);
     }
 }
@@ -204,48 +179,3 @@ void ClientProgram::fetch2()
     new read_first(with_server, this); //下一次在tcp的dispatch
 }
 
-void ClientProgram::ui_setupFriend()
-{ //就是curContact里面的那个Friend_
-
-    //首先若curContact是end()，则设置有右边为不可用
-    if (curContact == usertb.end())
-    {
-        ui->enableCtrl->setDisabled(true);
-        return;
-    }
-
-    /* TODO
-
-    if (有没发出去的消息)
-       禁止再发消息;
-    填充那几个label;
-    填充历史纪录;
-     FIXME 会不会出现用户手速太快在禁用之前已经发出去了一个回车信号？
-      */
-}
-
-void ClientProgram::ui_setall(bool enable)
-{
-    ui->splitter->setEnabled(enable);
-}
-
-void ClientProgram::ui_display_local_msg(const QString &msg)
-{
-    //TODO 在当前的textedit追加一段文字
-}
-
-void ClientProgram::ui_display_remote_msg(const Friend_ &peerid, const QString &msg)
-{
-    //TODO 设置窗口焦点( = setCurContact + up_setupFriend_)，并且把文字追加到后面
-}
-
-void ClientProgram::ui_add(Friend_ &fr)
-{
-    //TODO 维护列表框，特判不显示自己，把每一个的点击信号绑定给设置窗口焦点
-    //还是应该在Friend_里面放一个ListItem*
-}
-
-void ClientProgram::ui_del(Friend_ &)
-{
-
-}
