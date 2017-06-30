@@ -1,6 +1,5 @@
 #include <QtWidgets/QListWidgetItem>
 #include "server_program.h"
-
 ServerProgram::ServerProgram(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ServerProgram),
@@ -29,14 +28,14 @@ void ServerProgram::acceptConnection()
 
 void ServerProgram::ui_add(const Userdata& ud)
 {
-    usertb_ui[ud.session] = new QListWidgetItem(ud.username, ui->listWidget);
+    usertb[ud.session].disp
+            = new QListWidgetItem(ud.username, ui->listWidget);
 }
 void ServerProgram::ui_del(const QUuid& user)
 {
-    auto x = usertb_ui.find(user);
-    assert(x != usertb_ui.end()); //每个用户理论上只能下线一次
-    delete *x;
-    usertb_ui.remove(user);
+    auto x = usertb.find(user);
+    assert(x != usertb.end()); //每个用户理论上只能下线一次
+    delete x->disp;
 }
 
 void ServerProgram::dispatch_udp()
@@ -69,15 +68,15 @@ void ServerProgram::dispatch_udp()
         if (c.type & opcd::RQ_NEEDPUNC)
         {
             QUuid us, ur; stm >> us >> ur; //自己的身份和他人的身份
-            auto  y = puncreq_tb.find(ur);
+            auto  y = usertb.find(ur);
             qDebug() << "needpunc: req from" << us << " to " << ur << endl;
-            if (y == puncreq_tb.end())
+            if (y == usertb.end())
             {
                 qDebug() << "needpunching: target doesn't exist" << endl;
                 return;
             }
             //附加信息
-            y->append(us);
+            y->puncreq.append(us);
             punching->write(compose_obj(opcd::RSP_LISTADD));
         }
     }
@@ -101,20 +100,12 @@ void ServerProgram::dispatch(QByteArray inputdata, QTcpSocket& so)
     {
         QUuid id;
         input >> id;
-/*
-void ServerProgram::logout(QUuid id, QTcpSocket & sk)
-{
-    //TODO 这里重写完删掉
-    assert(usertb.find(id) != usertb.end());
-    auto y = usertb_ui[id];
-    delete y;
-    usertb.remove(id);
-}
- */
+        assert(usertb.find(id) != usertb.end());
         ui_del(id);
+        usertb.remove(id);
     }
     if (header.type & opcd::RQ_FETCH)
-    {
+    {//回传：更改列表 + 等待的打洞请求　+　别人完成的打洞请求
         QByteArray outputdata;
         QDataStream output(outputdata);
         QUuid id;
@@ -135,8 +126,8 @@ void ServerProgram::logout(QUuid id, QTcpSocket & sk)
             std::copy(changes.begin() + version, changes.end(), wr.begin());
             output << wr;
         }
-        auto y = puncreq_tb.find(id);
-        if (y != puncreq_tb.end() && y->size() != 0)
+        auto y = usertb.find(id);
+        if (y != usertb.end() && y->puncreq.size() != 0)
         {
             flag |= opcd::CMD_PUNCH;
             QList<QUuid> pend;

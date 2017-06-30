@@ -11,7 +11,14 @@ namespace Ui
 }
 
 
+struct User : Userdata
+{
+    QListWidgetItem* disp;
+    QList<QUuid> puncreq;
+    explicit User(const Userdata& ud)
+    : disp(nullptr), puncreq{}, Userdata(ud) {}
 
+};
 
 class ServerProgram : public QWidget
 {
@@ -27,13 +34,9 @@ private:
     Ui::ServerProgram *ui;
     QTcpServer *server;
     QUdpSocket *punching;
-    QHash<QUuid, Userdata> usertb;
-    QHash<QUuid, QListWidgetItem *> usertb_ui;
-    QHash<QUuid, QList<QUuid> > puncreq_tb;
-    //TODO 把三个东西组合起来 struct Userdata_server : userdata
-    //QLWI别放基类里面，到时候要写没有UI的服务器版本
-    QVector<Operation> changes; //回传：更改列表 + 等待的打洞请求　+　别人完成的打洞请求
 
+    QHash<QUuid, User> usertb;
+    QVector<Operation> changes;
 public slots:
     void ui_add(const Userdata&);
     void ui_del(const QUuid&);

@@ -18,7 +18,7 @@ enum Ports : quint16
     server_udp = 23335,
 
 };
-constexpr int MAX_UDP_SIZE = 1200;
+constexpr int MAX_MSG_SIZE = 200;
 
 struct opcd
 {
@@ -41,7 +41,7 @@ struct opcd
         MSG_REALMSG = 1 << 20,
         MSG_PUNCH = 1 << 22,
 
-        MSG_PUNCHPREPARE = 1 << 24,
+        MSG_OK = 1 << 24, //收到了发来的消息
 
     };
     unsigned type, length;
@@ -138,7 +138,6 @@ struct Userdata
     QString username, ipaddr;
     quint16 port;
 
-    //TODO: diff+传patch，dtl比较好用 quint64 dataVersion;
     friend QDataStream &operator>>(QDataStream &op, Userdata &s)
     {
         op >> s.session >> s.username >> s.ipaddr >> s.port;
@@ -152,14 +151,14 @@ struct Userdata
     }
 };
 
-template<class T> inline QByteArray __make__(T t1)
+template<class T> inline QByteArray __make__(const T& t1)
 {
     QByteArray ar;
     QDataStream st(&ar, QIODevice::ReadWrite);
     st << t1;
     return ar;
 }
-template<class T, class ...Ts> inline QByteArray __make__(T t1,  Ts... T2)
+template<class T, class ...Ts> inline QByteArray __make__(const T& t1,  const Ts&... T2)
 {
     QByteArray ar;
     QDataStream st(&ar, QIODevice::ReadWrite);
@@ -168,7 +167,7 @@ template<class T, class ...Ts> inline QByteArray __make__(T t1,  Ts... T2)
 }
 
 template<class ...Ts>
-inline QByteArray compose_obj(opcd::msgType ty,  Ts... object)
+inline QByteArray compose_obj(opcd::msgType ty,  const Ts&... object)
 {
     QByteArray ar = __make__(object...);
     (opcd{ty, (unsigned) ar.size()}).Ins(ar);
@@ -208,5 +207,5 @@ struct Operation
 };
 
 
-constexpr std::chrono::milliseconds timeout(10000), refresh(2000);
+constexpr std::chrono::milliseconds timeout(3000), refresh(2000);
 
