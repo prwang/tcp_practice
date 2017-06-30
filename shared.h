@@ -177,7 +177,7 @@ inline QByteArray compose_obj(opcd::msgType ty,  const Ts&... object)
     st << opcd();
     __make__(st, object...);
     st.device()->seek(0);
-    st << opcd{ty, (unsigned) ar.size()};
+    st << opcd{ty, unsigned(ar.size() - sizeof(opcd))};
     return ar;
 }
 
