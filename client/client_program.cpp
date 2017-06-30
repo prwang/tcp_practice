@@ -46,7 +46,7 @@ void ClientProgram::on_leSendBuffer_returnPressed()
 
     if (txt.size() > MAX_MSG_SIZE)
     {
-        errmsg("消息过长！");
+        errmsg("message is too long!");
         txt.resize(0);
         return;
     }
@@ -59,6 +59,7 @@ void ClientProgram::send_ip()
 {
     qDebug() << "send ip called!" << endl;
 //注意： 现在keep-alive应该没问题？但是如果防火墙干掉了的话，可以再次打洞，keepalive只是为了保证映射关系不要再发生变化
+
     interval_sendip->stop();
     with_client->writeDatagram(compose_obj(opcd::RQ_SENDIP, me.session),
                                curServer, server_udp);
@@ -85,6 +86,7 @@ void ClientProgram::dispatch(QByteArray inputdata, QTcpSocket &so)
                 Friend_ &pt = **usertb.insert(x.data.session,
                                              new Friend_(x.data, this));//insert会有replace行为
 //现在有modify操作，那么如果发生了modify操作，则会清空聊天记录！
+
                 if (x.type == x.ADD) ui_add(pt);
             } else if (x.type == x.DEL)
             {
@@ -122,11 +124,11 @@ void ClientProgram::login2()
     timeout_guard->stop();
     disconnect(with_server, SIGNAL(connected()), nullptr, nullptr);
     with_server->write(compose_obj(opcd::RQ_LOGIN, me));
-    disconnect(with_server, SIGNAL(connected()), this, SLOT(login2()));
     new read_first(with_server, this); // 下一步在dispatch-login3
 }
 
 //msg : 就是一个header+ uuid + msg
+
 void ClientProgram::dispatch_udp()
 {
     QNetworkDatagram dg = with_client->receiveDatagram();
@@ -160,13 +162,14 @@ void ClientProgram::dispatch_udp()
 void ClientProgram::withserver_failed()
 {
     with_server->disconnectFromHost();
-    errmsg("与服务器连接失败，检查网络并重试！");
+    errmsg("error when connecting with server!check your network and try again");
     timeout_guard->stop();
 }
 
 void ClientProgram::fetch()
 {
     //先建立TCP连接，再处理接收到的数据，最后settimeout下一次fetch
+
     connect(with_server, SIGNAL(connected()), this, SIGNAL(fetch2()));
     connect(timeout_guard, SIGNAL(timeout()), this, SLOT(withserver_failed()));
     timeout_guard->start(timeout);

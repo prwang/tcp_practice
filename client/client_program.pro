@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network 此pro文件暂不可用，本工程使用cmake
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -23,9 +23,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
-SOURCES += main.cpp\
-        client_program.cpp
+SOURCES += main.cpp client_program.cpp client_program_ui.cpp friend.cpp
 
-HEADERS  += client_program.h
+
+HEADERS  += client_program.h friend.h ../shared.h
 
 FORMS    += client_program.ui

@@ -1,4 +1,7 @@
 #pragma once
+#if _MSC_VER >= 1600
+#pragma execution_character_set("utf-8")
+#endif
 
 #include <QMainWindow>
 #include <QtNetwork/QNetworkDatagram>
@@ -214,6 +217,6 @@ struct Operation
 };
 
 
-constexpr std::chrono::milliseconds timeout(3000), refresh(2000);
+constexpr int timeout(3000), refresh(2000);
 
 #define errmsg(x) do {  QMessageBox::critical(this, tr("错误"), tr(x)); return; } while (false)
