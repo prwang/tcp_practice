@@ -137,6 +137,7 @@ void ClientProgram::dispatch_udp()
     if (head.type == opcd::RSP_IP_RECEIVED)
     {
         timeout_guard->stop();
+        qDebug() << "IP sent!" << endl;
         fetch();
     } else
     {
@@ -170,7 +171,7 @@ void ClientProgram::fetch()
 {
     //先建立TCP连接，再处理接收到的数据，最后settimeout下一次fetch
 
-    connect(with_server, SIGNAL(connected()), this, SIGNAL(fetch2()));
+    connect(with_server, SIGNAL(connected()), this, SLOT(fetch2()));
     connect(timeout_guard, SIGNAL(timeout()), this, SLOT(withserver_failed()));
     timeout_guard->start(timeout);
     curServer = QHostAddress(ui->leHost->text());

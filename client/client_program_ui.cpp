@@ -21,6 +21,11 @@ void ClientProgram::ui_setupFriend()
 void ClientProgram::ui_setall(bool enable)
 {
     ui->splitter->setEnabled(enable);
+    if (enable)
+    {
+        ui->lwContacts->setEnabled(true);
+        ui_setupFriend();
+    }
 }
 
 void ClientProgram::on_lwContacts_itemClicked(QListWidgetItem* qw)
