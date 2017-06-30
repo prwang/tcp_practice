@@ -165,7 +165,7 @@ struct Userdata
 };
 
 inline void __make__(QDataStream& st) { }
-template<class T, class ...Ts> inline QByteArray
+template<class T, class ...Ts> inline void
 __make__(QDataStream& st, const T& t1,  const Ts&... T2)
 {
     st << t1;
