@@ -2,7 +2,7 @@
 程序设计实习_tcp_socket大作业
 
 
-**注意：此时.pro暂不可用，编译配置以CMakeLists.txt为准**
+**测试未通过，因为目前shared.h/compose_obj/~QByteArray会SEGFAULT**
 ## 功能特色
 
 * 实现了一定规模的，可扩充的通信协议
